@@ -1,0 +1,47 @@
+name: 🔄 Atualizar BASE do Google Sheets
+
+on:
+  # ── Agendamento automático ────────────────────────────────────────────────
+  schedule:
+    - cron: '0 8,14,20 * * 1-5'   # Seg–Sex às 08h, 14h e 20h (UTC)
+    # Para testar com outro horário, veja: https://crontab.guru
+
+  # ── Disparo manual pelo GitHub ────────────────────────────────────────────
+  workflow_dispatch:
+
+  # ── Disparo ao subir qualquer arquivo para main ───────────────────────────
+  push:
+    branches: [main]
+    paths:
+      - 'update_base.py'   # re-executa se você editar o script
+
+jobs:
+  update:
+    name: Baixar CSV e injetar BASE no index.html
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Faz checkout do repositório
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      # 2. Configura Python
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. Roda o script de atualização
+      - name: 🔄 Atualizar BASE
+        run: python update_base.py
+
+      # 4. Commita e sobe as mudanças (só se index.html mudou)
+      - name: 💾 Commit e Push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          # Se não houver mudança, o commit falha silenciosamente
+          git diff --cached --quiet && echo "⏭️  Nada mudou, sem commit." || \
+            git commit -m "🤖 AUTO: BASE atualizada via Google Sheets $(date -u '+%d/%m/%Y %H:%M UTC')"
+          git push
